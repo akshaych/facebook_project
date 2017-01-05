@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="Smartnet" default="jar" basedir=".">
+  <target name="pack" description="Create an archive for submission">
+    <zip destfile="smartnet.zip">
+      <zipfileset dir="." excludes="smartnet.zip"/>
+    </zip>
+  </target>
+</project>

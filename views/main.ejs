@@ -1,0 +1,370 @@
+<html>
+<head>
+	<!-- CSS Imports -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+	<!-- JS Imports -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<!-- Meta Data -->
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- CSS Styles -->
+	<style type="text/css">
+		body {
+			text-align: center;
+			background-color: white;
+			background-image: url(http://pixelxpress.ca/wp-content/uploads/2014/09/blurred-city-lights-night1.jpg);
+			padding: 40px;
+			min-width:800px;
+		}
+		.user-profile {
+			display: none;
+		}
+		.news-feed {
+			display: none;
+		}
+		.profile-summary {
+			width: 330px;
+			margin: 20px;
+			display: inline-block;
+			float:left;
+		}
+		.user-profile .input-group {
+			background-color: rgba(255,255,255,0.5);
+		}
+		.img-box {
+			width: 100px;
+			height: 100px;
+			border-radius: 10px;
+			margin: 50px 100px 50px 50px;
+		}
+		.popover {
+			width: 500px;
+			height: 150px;
+		}
+		.navbar-default .navbar-brand {
+			margin-top:7px;
+			font-size:50;
+			color: #ccfffe;
+			font-family: 'Lobster', cursive;
+		}
+		.navbar-default .nav-item .nav-link {
+			font-family: 'Lobster', cursive;
+			font-size:25;
+			color: #ffcccc;
+			padding:24px 10px 10px 10px;
+			height:65px;
+		}
+	</style>
+
+	<title>Smartnet</title>
+
+	<!-- JS Scripts -->
+	<script>
+		var myusername;
+		var myname;
+		$(document).ready(function(){
+			$('[data-toggle="popover"]').popover();
+			$.get('/whoami',function(data, status) {
+				myusername = data.username;
+				myname = data.fullname;
+				navigate(1);
+			});
+		});
+		$(document).on("keypress", "form", function(event) { 
+		    return event.keyCode != 13;
+		});
+
+		function navigate(elem) {
+			$('.nav li').removeClass('active');
+			hidePopovers();
+			switch(elem) {
+				case 1:
+				loadProfile(myusername);
+				$('#profnav').addClass('active');
+				$('.news-feed').hide('slow');
+				$('.user-profile').show('slow');
+				break;
+				case 2:
+				loadFeed();
+				$('#feednav').addClass('active');
+				$('.user-profile').hide('slow');
+				$('.news-feed').show('slow');
+				break;
+			}
+		}
+
+		function hidePopovers() {
+			$('[data-toggle="popover"]').popover('hide');
+		}
+		function autoSearch() {
+			$.post('/autocomplete', {text:$('[name="findMe"]').val().toLowerCase()}, function(data, status) {
+				var newval = '';
+				for(var i = 0; i < data.length; i++) {
+					newval += '<option value="'+data[i]+'">';
+				}
+				$('#searchsugg').empty();
+				$('#searchsugg').html(newval);
+			});
+		}
+		function findUser() {
+			loadProfile($('[name="findMe"]').val().toLowerCase());
+		}
+		function updateProfile() {
+			if(profname == myusername) {
+				$.post('/updateprofile', {picture:$('#profilepic').prop('src'), email:$('[name="email"]').val(), affiliation:$('[name="affiliation"]').val(), birthday:$('[name="birthday"]').val(), interests:$('[name="interests"]').val().split(/[ ,]+/).filter(Boolean)}, function() {
+					loadProfile(profname);
+					alert('Your profile has been updated!');
+				});
+			} else {
+				$.post('/addfriend', {username:profname}, function(data, status) {
+					loadProfile(profname);
+					if(data && data == "Completed") {
+						alert('You are now friends with '+profname+'!');
+					} else if(data && data == "Requested") {
+						alert('You requested '+profname+"'s friendship, tell them to add you back!");
+					} else if(data && data == "Deleted") {
+						alert('You removed '+profname+" as a friend.");
+					}
+				});
+			}
+		}
+		function getPicture(picid) {
+			switch(picid) {
+				case 0: return "https://x1.xingassets.com/assets/frontend_minified/img/users/nobody_m.original.jpg"; break;
+				case 1: return "https://openclipart.org/image/300px/svg_to_png/215813/Penguin-Icon.png"; break;
+				case 2: return "https://openclipart.org/image/300px/svg_to_png/237291/Tile-Pink-and-White-Flowers-2016011414.png"; break;
+				case 3: return "https://openclipart.org/image/300px/svg_to_png/226038/Infinite-Brick-2015082738.png"; break;
+				case 4: return "https://openclipart.org/image/300px/svg_to_png/260385/landscape-at-night.png"; break;
+				case 5: return "https://openclipart.org/image/300px/svg_to_png/268142/donut-icon.png"; break;
+				case 6: return "https://openclipart.org/image/300px/svg_to_png/228001/Space-2015092235.png"; break;
+			}
+		}
+		var picid = 0;
+		function changePicture() {
+			if(profname == myusername) {
+				picid++;
+				picid = picid%7;
+				$('#profilepic').prop('src', getPicture(picid));
+			}
+		}
+		function updateStatus() {
+			if($('#txtStatus').val()) {
+				$.post('/updatestatus', {content:$('#txtStatus').val()}, function() {
+					$('#txtStatus').val('');
+					loadWall();
+					alert('Your status has been updated!');
+				});
+			}
+		}
+		function wallPost() {
+			if($('#txtWall').val()) {
+				$.post('/wallpost', {username:profname, content:$('#txtWall').val()}, function() {
+					$('#txtWall').val('');
+					loadWall();
+					alert('You posted on '+profname+"'s wall!");
+				});
+			}
+		}
+		function likeWall(postid) {
+			$.post('/likepost', {timestamp:wall[postid].timestamp, username:wall[postid].creator}, function(data, status) {
+				loadWall();
+				alert('You liked '+wall[postid].creator+"'s post!");
+			});
+		}
+		function likeFeed(postid) {
+			$.post('/likepost', {timestamp:feed[postid].timestamp, username:feed[postid].creator}, function(data, status) {
+				loadFeed();
+				alert('You liked '+feed[postid].creator+"'s post!");
+			});
+		}
+		var profname;
+		function loadProfile(username) {
+			$.post('/getprofile', {username:username}, function(data, status) {
+				if(data) {
+					$('#curruser').html(username.charAt(0).toUpperCase()+username.slice(1));
+					$('#btnUpdate').prop('disabled', false);
+					$('[name="email"]').val(data.email);
+					$('[name="affiliation"]').val(data.affil);
+					$('[name="birthday"]').val(data.birthday);
+					$('[name="interests"]').val(data.interests);
+					$('#profilepic').prop('src', data.picture);
+					profname = username;
+					if(profname != myusername) {
+						$('.news-feed').hide('slow');
+						$('.user-profile').show('slow');
+						$('.nav li').removeClass('active');
+						$('.form-control').prop('readonly', true);
+						$('[name="findMe"]').prop('readonly', false);
+						$('#txtWall').prop('placeholder', "You can only post on friends' walls");
+						$('#txtStatus').prop('placeholder', "You can't change this status");
+						$('#btnUpdate').prop('value', 'Request Friendship');
+						switch(data.friendstatus) {
+							case 1: $('#btnUpdate').prop('value', 'Confirm Friendship'); break;
+							case 2:
+								$('#btnUpdate').prop('value', 'Friendship Requested');
+								$('#btnUpdate').prop('disabled', true);
+								break;
+							case 3:
+								$('#btnUpdate').prop('value', 'Remove Friend');
+								$('#txtWall').prop('readonly', false);
+								$('#txtWall').prop('placeholder', "Post on wall");
+								break;
+						}
+					} else {
+						$('#profnav').addClass('active');
+						$('.news-feed').hide('slow');
+						$('.user-profile').show('slow');
+						$('.form-control').prop('readonly', false);
+						$('#txtWall').prop('readonly', true);
+						$('#txtWall').prop('placeholder', "You can't post on your own wall");
+						$('#txtStatus').prop('placeholder', "Post a status");
+						$('#btnUpdate').prop('value', 'Update Profile');
+						$('#wallpic').prop('src', data.picture);
+					}
+					loadWall();
+				}
+			});
+		}
+		function posthtml(data, onwall) {
+			var inner = '';
+			for(var i = 0; i < data.length; i++) {
+				var liketype;
+				if(onwall) {
+					liketype='likeWall';
+				} else {
+					liketype='likeFeed';
+				}
+				var likearea = "<span style='float:right' class='badge'>"+data[i].likes+"</span><a href='#' onclick='"+liketype+"(" + i + ")'><span style='margin-right:10px;float:right' class='glyphicon glyphicon-thumbs-up'></span></a>";
+				var poptitle;
+				var creator = data[i].creator.charAt(0).toUpperCase()+data[i].creator.slice(1);
+				var recipient = data[i].recipient;
+				if(recipient) {
+					recipient = recipient.charAt(0).toUpperCase()+recipient.slice(1);
+				}
+				switch(data[i].type) {
+					case 0: poptitle = creator+" posted a status!"; break;
+					case 1: poptitle = recipient+" → "+ creator; break;
+					case 2: poptitle = creator+" made a profile update!"; break;
+					case 3: poptitle = creator+" made a friend!"; break;
+					case 4:
+						poptitle = creator+" liked "+recipient+"'s post";
+						likearea = "";
+						break;
+				}
+				inner += '<img class="img-box" src="'+data[i].picture+'" data-toggle="popover" title="'+poptitle+likearea+'" data-html="true" data-content="'+data[i].content+'" onclick="hidePopovers()" />';
+				if(i+1 == Math.floor(data.length/2)) {
+					inner += '<br/>';
+				}
+				
+			}
+			return inner;
+		}
+		var wall;
+		function loadWall() {
+			$.post('/getwall', {username:profname}, function(data, status) {
+				$('.wall-feed').empty();
+				wall = data;
+				$('.wall-feed').append(posthtml(data, true));
+				$('[data-toggle="popover"]').popover();
+			});
+		}
+		var feed;
+		function loadFeed() {
+			$.get('/getfeed', function(data, status) {
+				$('.news-feed').empty();
+				feed = data;
+				$('.news-feed').append(posthtml(data, false));
+				$('[data-toggle="popover"]').popover();
+			});
+		}
+</script>
+</head>
+
+<!-- Body starts here -->
+
+<body>
+	<!-- Navbar contents -->
+	<nav class="navbar navbar-default navbar-inverse" role="navigation" style="min-width:768px">
+		<div class="navbar-header">
+			<a class="navbar-brand" href="/"><b>Smartnet</b></a>
+		</div>
+
+		<ul class="nav navbar-nav navbar-left">
+			<li class="nav-item">
+				<form class="navbar-form" role="search">
+					<div class="input-group input-group-md" style="margin-top:8px;">
+						<input class="form-control" name="findMe" type="text" placeholder="Find User" oninput="autoSearch()" list="searchsugg"></input>
+						<datalist id="searchsugg"></datalist>
+						<div class="input-group-btn">
+							<button class="btn btn-md" style="height:34px" type="button" onclick="findUser()"><i class="glyphicon glyphicon-search"></i></button>
+						</div>
+					</div>
+				</form>
+			</li>
+		</ul>
+
+		<ul class="nav navbar-nav navbar-right">
+			<li id="profnav" class="nav-item">
+				<a class="nav-link" href="#" onclick="navigate(1)">Profile</a>
+			</li>
+			<li id="feednav" class="nav-item">
+				<a class="nav-link" href="#" onclick="navigate(2)">Feed</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="/logout">Logout</a>
+			</li>
+			<li><p class="navbar-text"></p></li>
+		</ul>
+	</nav>
+
+	<!-- User profile contents -->
+	<div class="user-profile">
+		<div class="profile-summary">
+			<img id="profilepic" style="float:left;margin:10px" class="img-box" src="https://x1.xingassets.com/assets/frontend_minified/img/users/nobody_m.original.jpg" onclick="changePicture()" />
+			<div class="well well-sm" style="margin-top:10px;display:inline-block;width:200px;height:100px">
+				<textarea id="txtStatus" class="form-control" style="resize:none;width:100%;height:100%" type="text" maxlength="150" placeholder="Post a status" onchange="updateStatus()"></textarea>
+			</div>
+
+			<div class='input-group well well-lg' style="width:100%">
+				<legend id='curruser' style="color:white;font-family: 'Lobster', cursive;font-size:50"></legend>
+				<div class="input-group" style="margin-bottom:10px">
+					<span class="input-group-addon">
+						<span class="glyphicon glyphicon-envelope"></span>
+					</span>
+					<input type='email' name="email" class="form-control" placeholder="example@example.com" />
+				</div>
+				<div class="input-group" style="margin-bottom:10px">
+					<span class="input-group-addon">
+						<span class="glyphicon glyphicon-education"></span>
+					</span>
+					<input type='text' name="affiliation" class="form-control" placeholder="University of Pennsylvania" />
+				</div>
+				<div class="input-group" style="margin-bottom:10px">
+					<span class="input-group-addon">
+						<span class="glyphicon glyphicon-calendar"></span>
+					</span>
+					<input type='text' name="birthday" class="form-control" placeholder="MM-DD-YYYY" />
+				</div>
+				<div class="input-group" style="margin-bottom:10px">
+					<span class="input-group-addon">
+						<span class="glyphicon glyphicon-knight"></span>
+					</span>
+					<input type='text' name="interests" class="form-control" placeholder="Movies, Music" />
+				</div>
+				<input id="btnUpdate" style="width:100%" type="button" value="Update Profile" class="btn btn-lg btn-primary btn-block" onclick="updateProfile()" />
+			</div>
+		</div>
+		<div style="display:inline-block">
+			<img id='wallpic' class="img-box" style="float:left;margin:10px" src="https://x1.xingassets.com/assets/frontend_minified/img/users/nobody_m.original.jpg" />
+			<div class="well well-sm" style="margin-top:10px;display:inline-block;width:330px;height:100px">
+				<textarea id="txtWall" class="form-control" readonly="true" style="resize:none;width:100%;height:100%" type="text" maxlength="150" placeholder="You can't post on your own wall" onchange="wallPost()"></textarea>
+			</div>
+		</div>
+		<div class="wall-feed"></div>
+	</div>
+
+	<!-- News feed contents -->
+	<div class="news-feed"></div>
+</body>
+</html>

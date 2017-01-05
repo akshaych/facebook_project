@@ -1,0 +1,19 @@
+{
+   "name": "Smartnet",
+   "description": "Social Network",
+   "version": "0.0.1",
+   "scripts": {
+     "start": "node app.js"
+   },
+   "dependencies": {
+      "async": "2.1.4",
+      "joi": "*",
+      "vogels": "*",
+      "express": "3.3.8",
+      "crypto-js": "*",
+      "aws-sdk": "*",
+      "ejs": "*",
+      "async": "*",
+      "lru-cache" : "*"
+   }
+}
